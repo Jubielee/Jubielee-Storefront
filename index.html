@@ -6,8 +6,32 @@
   <meta name="description" content="Shop products from Jubielee. Pay with your Jubielee Wallet or complete payment outside the app.">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#087c45">
-  <link rel="icon" href="assets/store-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=20260801-mobile-app-1">
+  <meta name="application-name" content="Jubielee Store">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style"
+        content="default">
+  <meta name="apple-mobile-web-app-title"
+        content="Jubielee Store">
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon"
+        sizes="180x180"
+        href="assets/apple-touch-icon.png">
+  <link rel="icon"
+        sizes="192x192"
+        href="assets/icon-192.png"
+        type="image/png">
+  <link rel="icon"
+        sizes="512x512"
+        href="assets/icon-512.png"
+        type="image/png">
+  <link rel="icon"
+        href="assets/store-mark.svg"
+        type="image/svg+xml">
+
+  <link rel="stylesheet"
+        href="styles.css?v=20260801-mobile-app-1">
 </head>
 <body>
   <header class="site-header">
@@ -310,6 +334,22 @@
 
   <script src="config.js?v=1"></script>
   <script src="app.js?v=20260801-buy-split-2"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker
+          .register("./service-worker.js", {
+            scope: "./"
+          })
+          .catch(function (error) {
+            console.error(
+              "Storefront service worker registration failed:",
+              error
+            );
+          });
+      });
+    }
+  </script>
 
   <script>
     (function () {

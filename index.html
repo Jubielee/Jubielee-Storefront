@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#087c45">
   <link rel="icon" href="assets/store-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=1">
+  <link rel="stylesheet" href="styles.css?v=20260801-mobile-app-1">
 </head>
 <body>
   <header class="site-header">
@@ -259,10 +259,145 @@
     </div>
   </section>
 
+
+  <nav id="mobileAppNav"
+       class="mobile-app-nav"
+       aria-label="Store navigation">
+
+    <button id="mobileStoreButton"
+            class="mobile-nav-item active"
+            type="button">
+      <span class="mobile-nav-icon" aria-hidden="true">⌂</span>
+      <span>Store</span>
+    </button>
+
+    <button id="mobileOrdersButton"
+            class="mobile-nav-item"
+            type="button">
+      <span class="mobile-nav-icon" aria-hidden="true">▤</span>
+      <span>Orders</span>
+    </button>
+
+    <button id="mobileAccountButton"
+            class="mobile-nav-item"
+            type="button">
+      <span class="mobile-nav-icon" aria-hidden="true">●</span>
+      <span>Account</span>
+    </button>
+
+    <button id="mobileCartButton"
+            class="mobile-nav-item"
+            type="button">
+      <span class="mobile-nav-icon mobile-cart-icon"
+            aria-hidden="true">▣</span>
+
+      <span>Cart</span>
+
+      <strong id="mobileCartCount"
+              class="mobile-cart-count">0</strong>
+    </button>
+
+    <a class="mobile-nav-item"
+       href="https://pwa.jubielee.com/?source=store&amp;category=store_order"
+       target="_blank"
+       rel="noopener noreferrer">
+      <span class="mobile-nav-icon" aria-hidden="true">?</span>
+      <span>Help</span>
+    </a>
+  </nav>
+
   <div id="toast" class="toast" hidden></div>
 
   <script src="config.js?v=1"></script>
   <script src="app.js?v=20260801-buy-split-2"></script>
+
+  <script>
+    (function () {
+      "use strict";
+
+      function clickExisting(id) {
+        var element = document.getElementById(id);
+
+        if (element) {
+          element.click();
+        }
+      }
+
+      var storeButton =
+        document.getElementById("mobileStoreButton");
+
+      var ordersButton =
+        document.getElementById("mobileOrdersButton");
+
+      var accountButton =
+        document.getElementById("mobileAccountButton");
+
+      var cartButton =
+        document.getElementById("mobileCartButton");
+
+      if (storeButton) {
+        storeButton.addEventListener("click", function () {
+          var catalog = document.getElementById("catalog");
+
+          if (catalog) {
+            catalog.scrollIntoView({
+              behavior: "smooth",
+              block: "start"
+            });
+          }
+        });
+      }
+
+      if (ordersButton) {
+        ordersButton.addEventListener("click", function () {
+          clickExisting("trackOrderButton");
+        });
+      }
+
+      if (accountButton) {
+        accountButton.addEventListener("click", function () {
+          clickExisting("accountButton");
+        });
+      }
+
+      if (cartButton) {
+        cartButton.addEventListener("click", function () {
+          clickExisting("cartButton");
+        });
+      }
+
+      var desktopCount =
+        document.getElementById("cartCount");
+
+      var mobileCount =
+        document.getElementById("mobileCartCount");
+
+      function synchronizeCartCount() {
+        if (!desktopCount || !mobileCount) {
+          return;
+        }
+
+        mobileCount.textContent =
+          desktopCount.textContent || "0";
+
+        mobileCount.hidden =
+          Number(mobileCount.textContent || 0) < 1;
+      }
+
+      if (desktopCount && mobileCount) {
+        synchronizeCartCount();
+
+        new MutationObserver(
+          synchronizeCartCount
+        ).observe(desktopCount, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+      }
+    })();
+  </script>
+
 
 <!-- Jubielee Store verified support -->
 <a id="jubielee-store-support-link"

@@ -282,12 +282,20 @@
                 : ""}
             </div>
             <div class="product-actions">
-              <button class="add-cart-button"
+              <button class="add-cart-button direct-buy-button"
+                      type="button"
+                      data-buy-product="${Number(product.id)}"
+                      ${available < 1 ? "disabled" : ""}>
+                ${available < 1 ? "Out of stock" : "Buy Now"}
+              </button>
+
+              <button class="add-cart-button assisted-purchase-button"
                       type="button"
                       data-add-product="${Number(product.id)}"
                       ${available < 1 ? "disabled" : ""}>
-                ${available < 1 ? "Out of stock" : "Buy / Comprar / Achte"}
+                Speak with someone
               </button>
+
               <button class="view-button"
                       type="button"
                       data-view-product="${Number(product.id)}"
@@ -366,10 +374,28 @@
           </p>
           <div class="product-detail-description">${escapeHtml(product.description || product.short_description || "")}</div>
           <div class="detail-buy-row">
-            <input id="detailQuantity" type="number" min="1" max="${Math.max(1, available)}" value="1" aria-label="Quantity">
-            <button id="detailAddButton" class="primary-button" type="button" ${available < 1 ? "disabled" : ""}>
-              Buy / Comprar / Achte
-            </button>
+            <input id="detailQuantity"
+                   type="number"
+                   min="1"
+                   max="${Math.max(1, available)}"
+                   value="1"
+                   aria-label="Quantity">
+
+            <div class="detail-buy-actions">
+              <button id="detailBuyNowButton"
+                      class="primary-button"
+                      type="button"
+                      ${available < 1 ? "disabled" : ""}>
+                Buy Now
+              </button>
+
+              <button id="detailAddButton"
+                      class="primary-button"
+                      type="button"
+                      ${available < 1 ? "disabled" : ""}>
+                Speak with someone
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -385,10 +411,34 @@
       });
     });
 
-    const addButton = document.getElementById("detailAddButton");
+    const buyNowButton =
+      document.getElementById("detailBuyNowButton");
+
+    if (buyNowButton) {
+      buyNowButton.addEventListener("click", () => {
+        const quantity = Math.max(
+          1,
+          Number(
+            document.getElementById("detailQuantity").value || 1
+          )
+        );
+
+        buyProductNow(product, quantity);
+      });
+    }
+
+    const addButton =
+      document.getElementById("detailAddButton");
+
     if (addButton) {
       addButton.addEventListener("click", () => {
-        const quantity = Math.max(1, Number(document.getElementById("detailQuantity").value || 1));
+        const quantity = Math.max(
+          1,
+          Number(
+            document.getElementById("detailQuantity").value || 1
+          )
+        );
+
         openAssistedPurchase(product, quantity);
       });
     }
@@ -481,6 +531,24 @@
 
     );
 
+  }
+
+
+  function buyProductNow(product, quantity) {
+    if (!product || Number(product.available_quantity || 0) < 1) {
+      toast("This product is currently unavailable.");
+      return;
+    }
+
+    state.cart = [];
+    saveCart();
+
+    addToCart(product, quantity);
+
+    closeLayer("productModal");
+    closeLayer("cartDrawer");
+
+    openCheckout();
   }
 
 
@@ -979,11 +1047,26 @@
     });
 
     elements.productGrid.addEventListener("click", (event) => {
-      const addButton = event.target.closest("[data-add-product]");
-      const viewButton = event.target.closest("[data-view-product]");
+      const buyButton =
+        event.target.closest("[data-buy-product]");
 
-      if (addButton) {
-        const product = state.productById.get(Number(addButton.dataset.addProduct));
+      const addButton =
+        event.target.closest("[data-add-product]");
+
+      const viewButton =
+        event.target.closest("[data-view-product]");
+
+      if (buyButton) {
+        const product = state.productById.get(
+          Number(buyButton.dataset.buyProduct)
+        );
+
+        buyProductNow(product, 1);
+      } else if (addButton) {
+        const product = state.productById.get(
+          Number(addButton.dataset.addProduct)
+        );
+
         openAssistedPurchase(product, 1);
       } else if (viewButton) {
         openProduct(Number(viewButton.dataset.viewProduct));

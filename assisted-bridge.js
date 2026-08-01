@@ -84,7 +84,7 @@
       .forEach(function (button) {
         if (!button.disabled) {
           button.textContent =
-            "Buy / Comprar / Achte";
+            "Speak with someone";
         }
       });
 
@@ -93,7 +93,7 @@
 
     if (detailButton && !detailButton.disabled) {
       detailButton.textContent =
-        "Buy / Comprar / Achte";
+        "Speak with someone";
     }
 
     const cartButton =

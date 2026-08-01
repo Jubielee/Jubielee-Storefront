@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Jubielee Store Payment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="assets/store-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+  <main style="max-width:720px;margin:60px auto;padding:0 18px;">
+    <section class="modal-body" style="background:white;border-radius:28px;box-shadow:var(--shadow);">
+      <span class="section-kicker">Jubielee Store</span>
+      <h1>Payment handoff</h1>
+      <p class="muted">
+        This page is the safe handoff point for the configured external card processor.
+        It does not mark an order paid by itself.
+      </p>
+      <div id="paymentOrder" class="order-card"></div>
+      <p class="muted">
+        Configure <code>JUBIELEE_STORE_EXTERNAL_PAYMENT_URL</code> in the backend
+        to send customers directly to the approved payment processor.
+      </p>
+      <a class="primary-button full-width"
+         style="display:flex;align-items:center;justify-content:center;text-decoration:none;"
+         href="index.html">Return to Jubielee Store</a>
+    </section>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    document.getElementById("paymentOrder").innerHTML = [
+      ["Order", params.get("order") || "—"],
+      ["Payment reference", params.get("reference") || "—"]
+    ].map(([label, value]) =>
+      `<div><span>${label}</span><strong>${String(value).replace(/[&<>"']/g, "")}</strong></div>`
+    ).join("");
+  </script>
+</body>
+</html>

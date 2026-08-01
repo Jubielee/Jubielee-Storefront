@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Jubielee Store</title>
+  <meta name="description" content="Shop products from Jubielee. Pay with your Jubielee Wallet or complete payment outside the app.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#087c45">
+  <link rel="icon" href="assets/store-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="Jubielee Store home">
+      <span class="brand-mark">J</span>
+      <span>
+        <strong>Jubielee</strong>
+        <small>Store</small>
+      </span>
+    </a>
+
+    <form id="searchForm" class="header-search" role="search">
+      <input id="searchInput" type="search" placeholder="Search products" autocomplete="off">
+      <button type="submit" aria-label="Search">⌕</button>
+    </form>
+
+    <div class="header-actions">
+      <button id="accountButton" class="ghost-button" type="button">Sign in</button>
+      <button id="cartButton" class="cart-button" type="button" aria-label="Open JubieCart">
+        <span>JubieCart</span>
+        <strong id="cartCount">0</strong>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Local connection. Better shopping.</span>
+        <h1>Find it. Select it. Confirm it.</h1>
+        <p>
+          Browse Jubielee products, watch product videos, and pay with your
+          Jubielee Wallet or outside the app.
+        </p>
+        <button id="shopNowButton" class="primary-button" type="button">Shop now</button>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="hero-orbit orbit-one"></div>
+        <div class="hero-orbit orbit-two"></div>
+        <div class="hero-bag">J</div>
+      </div>
+    </section>
+
+    <section class="catalog-shell" id="catalog">
+      <div class="catalog-toolbar">
+        <div>
+          <span class="section-kicker">Jubielee Storefront</span>
+          <h2>Shop products</h2>
+        </div>
+        <select id="sortSelect" class="select-control" aria-label="Sort products">
+          <option value="">Featured</option>
+          <option value="newest">Newest</option>
+          <option value="price_asc">Price: low to high</option>
+          <option value="price_desc">Price: high to low</option>
+          <option value="name">Name</option>
+        </select>
+      </div>
+
+      <div id="categoryChips" class="category-chips" aria-label="Product categories"></div>
+      <div id="catalogMessage" class="catalog-message">Loading products…</div>
+      <div id="productGrid" class="product-grid"></div>
+
+      <div class="pagination-row">
+        <button id="previousPageButton" class="ghost-button" type="button">Previous</button>
+        <span id="pageIndicator"></span>
+        <button id="nextPageButton" class="ghost-button" type="button">Next</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <strong>Jubielee Store</strong>
+      <span>Secure catalog and order management powered by Jubielee.</span>
+    </div>
+    <button id="trackOrderButton" class="footer-link" type="button">Track an order</button>
+  </footer>
+
+  <div id="overlay" class="overlay" hidden></div>
+
+  <aside id="cartDrawer" class="drawer" aria-hidden="true">
+    <div class="drawer-header">
+      <div>
+        <span class="section-kicker">Your cart</span>
+        <h2>JubieCart</h2>
+      </div>
+      <button class="icon-button" data-close="cartDrawer" type="button" aria-label="Close cart">×</button>
+    </div>
+    <div id="cartItems" class="cart-items"></div>
+    <div class="cart-summary">
+      <div><span>Subtotal</span><strong id="cartSubtotal">—</strong></div>
+      <p id="cartCurrencyNotice"></p>
+      <button id="checkoutButton" class="primary-button full-width" type="button">Checkout</button>
+    </div>
+  </aside>
+
+  <section id="productModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <button class="icon-button modal-close" data-close="productModal" type="button" aria-label="Close product">×</button>
+    <div id="productModalContent"></div>
+  </section>
+
+  <section id="loginModal" class="modal compact-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <button class="icon-button modal-close" data-close="loginModal" type="button" aria-label="Close sign in">×</button>
+    <div class="modal-body">
+      <span class="section-kicker">Jubielee account</span>
+      <h2 id="loginTitle">Sign in for Wallet payment</h2>
+      <p id="loginDescription" class="muted">
+        Use the email and phone number already connected to your Jubielee account.
+      </p>
+
+      <form id="loginForm">
+        <div id="loginCredentials">
+          <label>Email
+            <input id="loginEmail" type="email" required autocomplete="email">
+          </label>
+          <div class="split-fields">
+            <label>Country code
+              <select id="loginPhoneCode">
+                <option value="1">+1</option>
+                <option value="509">+509</option>
+                <option value="52">+52</option>
+                <option value="57">+57</option>
+                <option value="58">+58</option>
+                <option value="507">+507</option>
+              </select>
+            </label>
+            <label>Phone
+              <input id="loginPhone" type="tel" required autocomplete="tel">
+            </label>
+          </div>
+        </div>
+
+        <div id="loginOtpFields" hidden>
+          <label>6-digit email code
+            <input id="loginOtp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+          </label>
+        </div>
+
+        <p id="loginMessage" class="form-message"></p>
+        <button id="loginSubmitButton" class="primary-button full-width" type="submit">Send code</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="checkoutModal" class="modal checkout-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <button class="icon-button modal-close" data-close="checkoutModal" type="button" aria-label="Close checkout">×</button>
+    <div class="modal-body">
+      <span class="section-kicker">Secure checkout</span>
+      <h2>Complete your order</h2>
+
+      <form id="checkoutForm">
+        <div class="checkout-grid">
+          <div>
+            <h3>Contact</h3>
+            <label>Full name
+              <input id="checkoutName" name="customer_name" required maxlength="180">
+            </label>
+            <label>Email
+              <input id="checkoutEmail" name="customer_email" type="email" maxlength="180">
+            </label>
+            <label>Phone
+              <input id="checkoutPhone" name="customer_phone" type="tel" maxlength="80">
+            </label>
+
+            <h3>Fulfillment</h3>
+            <div class="choice-grid">
+              <label class="choice-card">
+                <input type="radio" name="shipping_method" value="pickup" checked>
+                <span><strong>Pickup</strong><small>Collect from the selected Jubielee location.</small></span>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="shipping_method" value="delivery">
+                <span><strong>Delivery</strong><small>Delivery charges can be confirmed with the order.</small></span>
+              </label>
+            </div>
+
+            <div id="deliveryFields" hidden>
+              <label>Address
+                <input id="checkoutAddress" maxlength="250">
+              </label>
+              <div class="split-fields">
+                <label>City
+                  <input id="checkoutCity" maxlength="100">
+                </label>
+                <label>Country
+                  <input id="checkoutCountry" maxlength="100" value="Dominican Republic">
+                </label>
+              </div>
+            </div>
+
+            <label>Order notes
+              <textarea id="checkoutNotes" rows="3" maxlength="2000" placeholder="Size, color, pickup request, delivery detail…"></textarea>
+            </label>
+          </div>
+
+          <div>
+            <h3>Payment</h3>
+            <div id="paymentChoices" class="payment-choices">
+              <label class="choice-card" id="walletPaymentChoice">
+                <input type="radio" name="payment_method" value="wallet">
+                <span>
+                  <strong>Jubielee Wallet</strong>
+                  <small id="walletPaymentText">Sign in to use Wallet payment.</small>
+                </span>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="payment_method" value="external_card" checked>
+                <span><strong>Card outside the app</strong><small>Continue to the configured secure payment page.</small></span>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="payment_method" value="zelle">
+                <span><strong>Zelle</strong><small>Inventory is reserved while Jubielee verifies receipt.</small></span>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="payment_method" value="bank_transfer">
+                <span><strong>Bank transfer</strong><small>Use the order payment reference.</small></span>
+              </label>
+            </div>
+
+            <div id="checkoutSummary" class="checkout-summary"></div>
+            <p id="checkoutMessage" class="form-message"></p>
+            <button id="placeOrderButton" class="primary-button full-width" type="submit">
+              Place order
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section id="orderModal" class="modal compact-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <button class="icon-button modal-close" data-close="orderModal" type="button" aria-label="Close order">×</button>
+    <div id="orderModalContent" class="modal-body"></div>
+  </section>
+
+  <section id="trackModal" class="modal compact-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <button class="icon-button modal-close" data-close="trackModal" type="button" aria-label="Close tracking">×</button>
+    <div class="modal-body">
+      <span class="section-kicker">Order status</span>
+      <h2>Track your order</h2>
+      <p class="muted">Paste the private checkout token from your order confirmation.</p>
+      <form id="trackOrderForm">
+        <label>Checkout token
+          <input id="trackOrderToken" required>
+        </label>
+        <p id="trackOrderMessage" class="form-message"></p>
+        <button class="primary-button full-width" type="submit">Check status</button>
+      </form>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="config.js?v=1"></script>
+  <script src="app.js?v=20260730-assisted-5"></script>
+
+<!-- Jubielee Store verified support -->
+<a id="jubielee-store-support-link"
+   href="https://pwa.jubielee.com/?source=store&amp;category=store_order"
+   target="_blank"
+   rel="noopener noreferrer"
+   aria-label="Contact Jubielee Store Support"
+   style="
+       position: fixed;
+       right: 22px;
+       bottom: 22px;
+       z-index: 2147483000;
+       display: inline-flex;
+       align-items: center;
+       justify-content: center;
+       min-height: 48px;
+       padding: 12px 18px;
+       border-radius: 999px;
+       background: #087c38;
+       color: #ffffff;
+       font: 700 15px/1.2 Arial, sans-serif;
+       text-decoration: none;
+       box-shadow: 0 10px 28px rgba(0,0,0,.22);
+   ">
+    Contact Store Support
+</a>
+
+</body>
+</html>

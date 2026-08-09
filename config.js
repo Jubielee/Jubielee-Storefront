@@ -68,12 +68,6 @@ window.JUBIELEE_STOREFRONT_CONFIG = {
         checkout_token: checkoutToken,
         referral_code: referral.code
       })
-    }).then(function (response) {
-      return response.clone().json().catch(function () { return null; });
-    }).then(function (payload) {
-      if (String(payload && payload.status) === "1") {
-        localStorage.removeItem(STORAGE_KEY);
-      }
     }).catch(function () {});
   }
 

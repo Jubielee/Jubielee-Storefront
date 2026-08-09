@@ -61,14 +61,17 @@ window.JUBIELEE_STOREFRONT_CONFIG = {
     let nextInit = init;
     const url = typeof input === "string" ? input : (input && input.url ? input.url : "");
     const isEmailLogin = /\/email_login(?:\?|$)/.test(url);
-    const isEmailVerify = /\/email_verify(?:\?|$)/.test(url);
+    const isStoreCheckout = /\/store\/checkout(?:\?|$)/.test(url);
 
-    if (isEmailLogin && init && typeof init.body === "string") {
+    if ((isEmailLogin || isStoreCheckout) && init && typeof init.body === "string") {
       try {
         const body = JSON.parse(init.body);
         const referral = loadReferral();
 
-        body.signup_source = "storefront";
+        if (isEmailLogin) {
+          body.signup_source = "storefront";
+        }
+
         if (referral && referral.code) {
           body.referral_code = referral.code;
         }
@@ -83,7 +86,7 @@ window.JUBIELEE_STOREFRONT_CONFIG = {
 
     const request = originalFetch(input, nextInit);
 
-    if (isEmailVerify) {
+    if (isStoreCheckout) {
       request.then(function (response) {
         try {
           response.clone().json().then(function (payload) {

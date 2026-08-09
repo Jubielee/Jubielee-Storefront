@@ -51,6 +51,32 @@ window.JUBIELEE_STOREFRONT_CONFIG = {
     }));
   }
 
+  function recordStoreReferral(checkoutToken, referral) {
+    if (!checkoutToken || !referral || !referral.code) return;
+
+    const config = window.JUBIELEE_STOREFRONT_CONFIG || {};
+    const apiBaseUrl = String(config.apiBaseUrl || "").replace(/\/$/, "");
+    if (!apiBaseUrl) return;
+
+    originalFetch(apiBaseUrl + "/referrals/store/capture", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        checkout_token: checkoutToken,
+        referral_code: referral.code
+      })
+    }).then(function (response) {
+      return response.clone().json().catch(function () { return null; });
+    }).then(function (payload) {
+      if (String(payload && payload.status) === "1") {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }).catch(function () {});
+  }
+
   captureIncomingReferral();
 
   if (typeof window.fetch !== "function") return;
@@ -87,11 +113,14 @@ window.JUBIELEE_STOREFRONT_CONFIG = {
     const request = originalFetch(input, nextInit);
 
     if (isStoreCheckout) {
+      const referralAtCheckout = loadReferral();
+
       request.then(function (response) {
         try {
           response.clone().json().then(function (payload) {
-            if (String(payload && payload.status) === "1") {
-              localStorage.removeItem(STORAGE_KEY);
+            const checkoutToken = payload && payload.data && payload.data.checkout_token;
+            if (String(payload && payload.status) === "1" && checkoutToken) {
+              recordStoreReferral(checkoutToken, referralAtCheckout);
             }
           }).catch(function () {});
         } catch (error) {}

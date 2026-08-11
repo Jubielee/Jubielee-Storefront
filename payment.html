@@ -2,38 +2,128 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Jubielee Store Payment</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Complete Your Jubielee Store Payment</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="assets/store-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=1">
+  <link rel="stylesheet" href="styles.css?v=20260804-3">
 </head>
 <body>
-  <main style="max-width:720px;margin:60px auto;padding:0 18px;">
-    <section class="modal-body" style="background:white;border-radius:28px;box-shadow:var(--shadow);">
+  <main style="max-width:720px;margin:40px auto;padding:0 18px;">
+    <section class="modal-body"
+      style="background:white;border-radius:28px;box-shadow:var(--shadow);">
+
       <span class="section-kicker">Jubielee Store</span>
-      <h1>Payment handoff</h1>
-      <p class="muted">
-        This page is the safe handoff point for the configured external card processor.
-        It does not mark an order paid by itself.
-      </p>
-      <div id="paymentOrder" class="order-card"></div>
-      <p class="muted">
-        Configure <code>JUBIELEE_STORE_EXTERNAL_PAYMENT_URL</code> in the backend
-        to send customers directly to the approved payment processor.
-      </p>
-      <a class="primary-button full-width"
-         style="display:flex;align-items:center;justify-content:center;text-decoration:none;"
-         href="index.html">Return to Jubielee Store</a>
+      <h1 id="paymentTitle">Complete your payment</h1>
+
+      <p id="paymentPageMessage" class="form-message"></p>
+
+      <div id="paymentLoading" class="muted">
+        Loading your secure order…
+      </div>
+
+      <div id="paymentContent" hidden>
+        <p id="paymentInstructions" class="muted"></p>
+
+        <div id="paymentOrder" class="order-card"></div>
+
+        <!-- JUBIELEE_STORE_PAYMENT_CONTINUITY_V1 -->
+        <section id="paymentActions"
+          style="margin-top:16px;"
+          hidden>
+
+          <button id="copyPaymentInfoButton"
+            class="secondary-button full-width"
+            type="button"
+            hidden>
+            Copy transfer information
+          </button>
+
+          <div id="bankAppPickerWrap"
+            style="margin-top:12px;"
+            hidden>
+            <label>
+              Find your banking app
+              <input id="bankAppSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="Search bank name">
+            </label>
+
+            <div id="bankAppResults"
+              style="display:grid;gap:8px;margin-top:8px;">
+            </div>
+          </div>
+
+          <button id="openBankAppButton"
+            class="primary-button full-width"
+            style="margin-top:12px;"
+            type="button"
+            hidden>
+            Open banking app
+          </button>
+
+          <button id="cancelPaymentButton"
+            class="ghost-button full-width"
+            style="margin-top:12px;"
+            type="button"
+            hidden>
+            Cancel Order & Return to Store
+          </button>
+        </section>
+
+        <section id="paymentItemsSection" style="margin-top:18px;" hidden>
+          <h2 style="font-size:20px;margin-bottom:10px;">Order items</h2>
+          <div id="paymentItems" class="order-card"></div>
+        </section>
+
+        <section id="paymentTimelineSection" style="margin-top:18px;" hidden>
+          <h2 style="font-size:20px;margin-bottom:10px;">Order progress</h2>
+          <div id="paymentTimeline" class="order-card"></div>
+        </section>
+
+        <form id="paymentProofForm"
+          class="payment-proof-form"
+          hidden>
+
+          <label>
+            Upload payment receipt
+            <input id="paymentProofFile"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              required>
+          </label>
+
+          <small id="paymentProofHelp">
+            Receipt upload supports JPG, PNG, WEBP, or PDF up to 15 MB.
+          </small>
+
+          <p id="paymentProofMessage" class="form-message"></p>
+
+          <button id="paymentProofButton"
+            class="secondary-button full-width"
+            type="submit">
+            Submit receipt
+          </button>
+        </form>
+
+        <button id="refreshPaymentButton"
+          class="ghost-button full-width"
+          style="margin-top:12px;"
+          type="button">
+          Refresh payment status
+        </button>
+      </div>
+
+      <a href="index.html"
+        class="primary-button full-width"
+        style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:14px;">
+        Return to Jubielee Store
+      </a>
     </section>
   </main>
-  <script>
-    const params = new URLSearchParams(location.search);
-    document.getElementById("paymentOrder").innerHTML = [
-      ["Order", params.get("order") || "—"],
-      ["Payment reference", params.get("reference") || "—"]
-    ].map(([label, value]) =>
-      `<div><span>${label}</span><strong>${String(value).replace(/[&<>"']/g, "")}</strong></div>`
-    ).join("");
-  </script>
+
+  <script src="config.js?v=20260804-3"></script>
+  <script src="payment.js?v=20260811-continuity1"></script>
 </body>
 </html>

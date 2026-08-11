@@ -17,6 +17,7 @@
     user: loadJson("jubielee_store_user", null),
     authToken: localStorage.getItem("jubielee_store_auth_token") || "",
     loginStep: "credentials",
+    onboardingToken: "",
     lastOrder: loadJson("jubielee_store_last_order", null)
   };
 
@@ -675,55 +676,224 @@
     renderCart();
   }
 
+  function setLoginStep(step) {
+    state.loginStep = step;
+
+    const credentials = document.getElementById("loginCredentials");
+    const accountChoice = document.getElementById("loginAccountChoice");
+    const otpFields = document.getElementById("loginOtpFields");
+    const consentFields = document.getElementById("loginConsentFields");
+    const submitButton = document.getElementById("loginSubmitButton");
+    const title = document.getElementById("loginTitle");
+    const description = document.getElementById("loginDescription");
+
+    credentials.hidden = true;
+    accountChoice.hidden = true;
+    otpFields.hidden = true;
+    consentFields.hidden = true;
+    submitButton.hidden = false;
+
+    if (step === "credentials") {
+      credentials.hidden = false;
+      submitButton.textContent = "Continue";
+      title.textContent = "Sign in to Jubielee";
+      description.textContent =
+        "Enter the email and phone number connected to your Jubielee account.";
+      return;
+    }
+
+    if (step === "account_choice") {
+      accountChoice.hidden = false;
+      submitButton.hidden = true;
+      title.textContent = "Continue with Jubielee";
+      description.textContent =
+        "Choose whether to shop as a guest or create a Jubielee account.";
+      return;
+    }
+
+    if (step === "existing_otp") {
+      otpFields.hidden = false;
+      submitButton.textContent = "Verify code";
+      title.textContent = "Verify your Jubielee account";
+      description.textContent =
+        "Enter the 6-digit code sent to your email.";
+      return;
+    }
+
+    if (step === "signup_otp") {
+      otpFields.hidden = false;
+      submitButton.textContent = "Verify code";
+      title.textContent = "Verify your email";
+      description.textContent =
+        "Enter the 6-digit code sent to your email.";
+      return;
+    }
+
+    if (step === "consent") {
+      consentFields.hidden = false;
+      submitButton.textContent = "Continue to identity verification";
+      title.textContent = "Identity verification";
+      description.textContent =
+        "Identity verification is required before your Jubielee account is created.";
+    }
+  }
+
   function openLogin() {
-    state.loginStep = "credentials";
-    document.getElementById("loginCredentials").hidden = false;
-    document.getElementById("loginOtpFields").hidden = true;
-    document.getElementById("loginSubmitButton").textContent = "Send code";
-    document.getElementById("loginMessage").textContent = "";
+    state.onboardingToken = "";
+    setLoginStep("credentials");
+
+    const message = document.getElementById("loginMessage");
+    message.classList.remove("success");
+    message.textContent = "";
+
+    document.getElementById("loginOtp").value = "";
+    document.getElementById("identityConsent").checked = false;
+
     openLayer("loginModal");
+  }
+
+  async function beginNewAccount() {
+    const message = document.getElementById("loginMessage");
+    const createButton = document.getElementById("createAccountButton");
+    const guestButton = document.getElementById("continueGuestButton");
+
+    createButton.disabled = true;
+    guestButton.disabled = true;
+    message.textContent = "";
+
+    try {
+      const result = await api("identity/onboarding/start", {
+        method: "POST",
+        body: {
+          email: state.loginEmail,
+          phone: state.loginPhone,
+          phone_code: state.loginPhoneCode,
+          user_type: "individual",
+          signup_source: "storefront",
+          deviceType: "storefront",
+          fcm_token: "",
+          voip_token: ""
+        }
+      });
+
+      if (result.flow !== "new_account" || !result.onboarding_token) {
+        throw new Error(
+          result.msg || "Unable to start Jubielee account registration."
+        );
+      }
+
+      state.onboardingToken = result.onboarding_token;
+      setLoginStep("signup_otp");
+
+      message.classList.add("success");
+      message.textContent = "Code sent to your email.";
+
+      document.getElementById("loginOtp").value = "";
+      document.getElementById("loginOtp").focus();
+    } catch (error) {
+      message.classList.remove("success");
+      message.textContent = error.message;
+    } finally {
+      createButton.disabled = false;
+      guestButton.disabled = false;
+    }
+  }
+
+  function continueAsGuest() {
+    state.onboardingToken = "";
+    closeLayer("loginModal");
+    prefillCheckout();
+
+    toast(
+      "Continuing as guest. Jubielee Wallet payment requires an account."
+    );
   }
 
   async function submitLogin(event) {
     event.preventDefault();
+
     const message = document.getElementById("loginMessage");
     const button = document.getElementById("loginSubmitButton");
+
     message.textContent = "";
+    message.classList.remove("success");
     button.disabled = true;
 
     try {
       if (state.loginStep === "credentials") {
-        state.loginEmail = document.getElementById("loginEmail").value.trim();
-        state.loginPhone = document.getElementById("loginPhone").value.trim();
-        state.loginPhoneCode = document.getElementById("loginPhoneCode").value;
+        state.loginEmail =
+          document.getElementById("loginEmail").value.trim();
+
+        state.loginPhone =
+          document.getElementById("loginPhone").value.trim();
+
+        state.loginPhoneCode =
+          document.getElementById("loginPhoneCode").value;
 
         if (!state.loginEmail || !state.loginPhone) {
           throw new Error("Email and phone number are required.");
         }
 
-        await api("email_login", {
-          method: "POST",
-          body: {
-            email: state.loginEmail,
-            phone: state.loginPhone,
-            phone_code: state.loginPhoneCode,
-            fcm_token: "",
-            voip_token: "",
-            deviceType: "storefront",
-            ip_address: ""
+        const accountCheck = await api(
+          "identity/onboarding/check-account",
+          {
+            method: "POST",
+            body: {
+              email: state.loginEmail,
+              phone: state.loginPhone,
+              phone_code: state.loginPhoneCode
+            }
           }
-        });
+        );
 
-        state.loginStep = "otp";
-        document.getElementById("loginCredentials").hidden = true;
-        document.getElementById("loginOtpFields").hidden = false;
-        document.getElementById("loginSubmitButton").textContent = "Verify code";
-        message.classList.add("success");
-        message.textContent = "Code sent to your email.";
-        document.getElementById("loginOtp").focus();
-      } else {
-        const otp = document.getElementById("loginOtp").value.trim();
-        if (otp.length !== 6) throw new Error("Enter the full 6-digit code.");
+        if (accountCheck.flow === "account_mismatch") {
+          throw new Error(
+            accountCheck.msg ||
+            "Email and phone do not match the existing account."
+          );
+        }
+
+        if (accountCheck.flow === "existing_user") {
+          await api("email_login", {
+            method: "POST",
+            body: {
+              email: state.loginEmail,
+              phone: state.loginPhone,
+              phone_code: state.loginPhoneCode,
+              fcm_token: "",
+              voip_token: "",
+              deviceType: "storefront",
+              ip_address: ""
+            }
+          });
+
+          setLoginStep("existing_otp");
+
+          message.classList.add("success");
+          message.textContent = "Code sent to your email.";
+
+          document.getElementById("loginOtp").value = "";
+          document.getElementById("loginOtp").focus();
+          return;
+        }
+
+        if (accountCheck.flow === "new_account") {
+          setLoginStep("account_choice");
+          return;
+        }
+
+        throw new Error(
+          "Unable to determine Jubielee account status."
+        );
+      }
+
+      if (state.loginStep === "existing_otp") {
+        const otp =
+          document.getElementById("loginOtp").value.trim();
+
+        if (otp.length !== 6) {
+          throw new Error("Enter the full 6-digit code.");
+        }
 
         const result = await api("email_verify", {
           method: "POST",
@@ -733,12 +903,82 @@
           }
         });
 
-        if (!result.data) throw new Error("Jubielee did not return the user account.");
+        if (!result.data) {
+          throw new Error(
+            "Jubielee did not return the user account."
+          );
+        }
 
         saveLogin(result.data);
         closeLayer("loginModal");
         prefillCheckout();
         toast("Signed in to Jubielee.");
+        return;
+      }
+
+      if (state.loginStep === "signup_otp") {
+        const otp =
+          document.getElementById("loginOtp").value.trim();
+
+        if (otp.length !== 6) {
+          throw new Error("Enter the full 6-digit code.");
+        }
+
+        if (!state.onboardingToken) {
+          throw new Error(
+            "Registration session missing. Please start again."
+          );
+        }
+
+        await api("identity/onboarding/verify-contact", {
+          method: "POST",
+          body: {
+            onboarding_token: state.onboardingToken,
+            otp_code: otp
+          }
+        });
+
+        setLoginStep("consent");
+
+        message.classList.add("success");
+        message.textContent =
+          "Email verified. Review the identity verification consent.";
+        return;
+      }
+
+      if (state.loginStep === "consent") {
+        if (!document.getElementById("identityConsent").checked) {
+          throw new Error(
+            "Please provide consent to continue with identity verification."
+          );
+        }
+
+        const result = await api(
+          "identity/onboarding/start-verification",
+          {
+            method: "POST",
+            body: {
+              onboarding_token: state.onboardingToken,
+              consent: true,
+              language: (
+                document.documentElement.lang || "en"
+              ).slice(0, 2)
+            }
+          }
+        );
+
+        if (!result.verification_url) {
+          throw new Error(
+            "Identity verification did not return a verification page."
+          );
+        }
+
+        localStorage.setItem(
+          "jubielee_store_onboarding_token",
+          state.onboardingToken
+        );
+
+        window.location.assign(result.verification_url);
       }
     } catch (error) {
       message.classList.remove("success");
@@ -746,6 +986,90 @@
     } finally {
       button.disabled = false;
     }
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function resumeIdentityOnboarding() {
+    const token = localStorage.getItem(
+      "jubielee_store_onboarding_token"
+    );
+
+    if (!token) return;
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      let result;
+
+      try {
+        result = await api("identity/onboarding/status", {
+          method: "POST",
+          body: {
+            onboarding_token: token
+          }
+        });
+      } catch (error) {
+        if (error.status === 404 || error.status === 410) {
+          localStorage.removeItem(
+            "jubielee_store_onboarding_token"
+          );
+        }
+        return;
+      }
+
+      if (result.completed && result.data) {
+        localStorage.removeItem(
+          "jubielee_store_onboarding_token"
+        );
+
+        state.onboardingToken = "";
+
+        saveLogin(result.data);
+        prefillCheckout();
+
+        toast(
+          "Identity verified. Your Jubielee account is ready."
+        );
+        return;
+      }
+
+      const providerStatus = String(
+        result.verification_status || ""
+      ).toLowerCase();
+
+      if (
+        providerStatus === "declined" ||
+        providerStatus === "abandoned" ||
+        providerStatus === "expired" ||
+        providerStatus === "kyc expired" ||
+        result.flow === "expired"
+      ) {
+        localStorage.removeItem(
+          "jubielee_store_onboarding_token"
+        );
+
+        toast(
+          "Identity verification was not completed or approved."
+        );
+        return;
+      }
+
+      if (providerStatus === "in review") {
+        toast(
+          "Your identity verification is under review."
+        );
+        return;
+      }
+
+      if (attempt < 3) {
+        await wait(1500);
+      }
+    }
+
+    toast(
+      "Identity verification was received. Jubielee is finalizing your account."
+    );
   }
 
   function signOut() {
@@ -759,6 +1083,7 @@
     closeLayer("cartDrawer");
     prefillCheckout();
     renderCheckoutSummary();
+    updateCheckoutPaymentButton();
     openLayer("checkoutModal");
   }
 
@@ -807,6 +1132,55 @@
     `;
   }
 
+  function checkoutButtonText() {
+    const selected = document.querySelector(
+      'input[name="payment_method"]:checked'
+    );
+
+    const method = selected ? selected.value : "";
+
+    switch (method) {
+      case "external_card":
+        return "Continue to secure payment";
+      case "wallet":
+        return "Pay with Jubielee Account";
+      case "zelle":
+        return "Reserve order and view Zelle instructions";
+      case "bank_transfer":
+        return "Reserve order and view bank instructions";
+      default:
+        return "Complete purchase";
+    }
+  }
+
+  function updateCheckoutPaymentButton() {
+    const button = document.getElementById("placeOrderButton");
+
+    if (button && !button.disabled) {
+      button.textContent = checkoutButtonText();
+    }
+  }
+
+  // JUBIELEE_STORE_BANK_TRANSFER_ROUTING_V1
+  function syncBankTransferFields() {
+    const fields = document.getElementById("bankTransferFields");
+    const sender = document.getElementById("checkoutSenderBank");
+    const selected = document.querySelector(
+      'input[name="payment_method"]:checked'
+    );
+
+    const isBankTransfer =
+      selected && selected.value === "bank_transfer";
+
+    if (fields) {
+      fields.hidden = !isBankTransfer;
+    }
+
+    if (sender) {
+      sender.required = Boolean(isBankTransfer);
+    }
+  }
+
   async function placeOrder(event) {
     event.preventDefault();
 
@@ -814,6 +1188,7 @@
     const message = document.getElementById("checkoutMessage");
     const paymentInput = document.querySelector('input[name="payment_method"]:checked');
     const shippingInput = document.querySelector('input[name="shipping_method"]:checked');
+    const senderBankInput = document.getElementById("checkoutSenderBank");
 
     message.textContent = "";
 
@@ -824,6 +1199,14 @@
 
     if (paymentInput.value === "wallet" && !state.authToken) {
       message.textContent = "Sign in before paying with your Wallet.";
+      return;
+    }
+
+    if (
+      paymentInput.value === "bank_transfer" &&
+      (!senderBankInput || !senderBankInput.value)
+    ) {
+      message.textContent = "Choose the bank you will send the transfer from.";
       return;
     }
 
@@ -853,6 +1236,10 @@
         quantity: Number(item.quantity)
       })),
       payment_method: paymentInput.value,
+      sender_bank:
+        paymentInput.value === "bank_transfer" && senderBankInput
+          ? senderBankInput.value
+          : null,
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone,
@@ -866,6 +1253,24 @@
         : null,
       customer_notes: document.getElementById("checkoutNotes").value.trim()
     };
+
+    var securePaymentWindow = null;
+
+    if (paymentInput.value === "external_card") {
+      securePaymentWindow = window.open(
+        "about:blank",
+        "jubieleeSecureCard",
+        "width=760,height=920,scrollbars=yes,resizable=yes"
+      );
+
+      if (securePaymentWindow) {
+        securePaymentWindow.document.write(
+          "<!doctype html><title>Jubielee Secure Payment</title>" +
+          "<p style=\"font-family:Arial;padding:30px\">" +
+          "Preparing your secure payment page…</p>"
+        );
+      }
+    }
 
     button.disabled = true;
     button.textContent = "Creating order…";
@@ -883,16 +1288,127 @@
       saveCart();
       renderCart();
       closeLayer("checkoutModal");
+
+      if (
+        paymentInput.value === "external_card" &&
+        state.lastOrder.external_payment_url
+      ) {
+        if (
+          securePaymentWindow &&
+          !securePaymentWindow.closed
+        ) {
+          securePaymentWindow.location.replace(
+            state.lastOrder.external_payment_url
+          );
+          securePaymentWindow.focus();
+        } else {
+          window.location.assign(
+            state.lastOrder.external_payment_url
+          );
+          return;
+        }
+
+        showOrder(state.lastOrder);
+        return;
+      }
+
+      // JUBIELEE_STORE_PAYMENT_CONTINUITY_V1
+      if (
+        ["bank_transfer", "zelle"].includes(paymentInput.value) &&
+        state.lastOrder &&
+        state.lastOrder.checkout_token
+      ) {
+        window.location.assign(
+          "payment.html?token=" +
+            encodeURIComponent(state.lastOrder.checkout_token)
+        );
+        return;
+      }
+
       showOrder(state.lastOrder);
     } catch (error) {
+      if (
+        securePaymentWindow &&
+        !securePaymentWindow.closed
+      ) {
+        securePaymentWindow.close();
+      }
+
       message.textContent = error.message;
       if (error.status === 401 && paymentInput.value === "wallet") {
         saveLogin(null);
       }
     } finally {
       button.disabled = false;
-      button.textContent = "Place order";
+      updateCheckoutPaymentButton();
     }
+  }
+
+  function bankTransferReceivingHtml(order) {
+    if (
+      !order ||
+      order.payment_method !== "bank_transfer" ||
+      !order.receiving_bank
+    ) {
+      return "";
+    }
+
+    const bank = order.receiving_bank;
+
+    return `
+      <div class="order-card" style="margin-top:14px;">
+        <h3 style="margin-top:0;">Bank transfer instructions</h3>
+
+        <div>
+          <span>Amount to transfer</span>
+          <strong>${money(bank.currency, bank.amount)}</strong>
+        </div>
+
+        <div>
+          <span>Bank</span>
+          <strong>${escapeHtml(bank.bank_name || "—")}</strong>
+        </div>
+
+        <div>
+          <span>Account holder</span>
+          <strong>${escapeHtml(bank.account_holder || "GOING A2B EIRL")}</strong>
+        </div>
+
+        <div>
+          <span>RNC</span>
+          <strong>${escapeHtml(bank.rnc || "132-09324-2")}</strong>
+        </div>
+
+        <div>
+          <span>Account type</span>
+          <strong>${escapeHtml(bank.account_type_label || "—")}</strong>
+        </div>
+
+        <div>
+          <span>Account number</span>
+          <strong>${escapeHtml(bank.account_number || "—")}</strong>
+        </div>
+
+        <div>
+          <span>Currency</span>
+          <strong>${escapeHtml(bank.currency || "—")}</strong>
+        </div>
+
+        <div>
+          <span>Payment reference</span>
+          <strong>${escapeHtml(bank.reference || order.payment_reference || "—")}</strong>
+        </div>
+
+        ${
+          bank.used_fallback
+            ? `<p class="muted" style="margin-bottom:0;margin-top:10px;">
+                 Your selected sending bank is being routed to the BanReservas
+                 Going a2b receiving account.
+               </p>`
+            : ""
+        }
+      </div>
+    `;
   }
 
   function showOrder(order) {
@@ -905,6 +1421,8 @@
       <h2>${paid ? "Your order is being prepared." : "Complete your payment."}</h2>
       <p class="muted">${escapeHtml(order.payment_instructions || "")}</p>
 
+      ${bankTransferReceivingHtml(order)}
+
       <div class="order-card">
         <div><span>Order</span><strong>${escapeHtml(order.order_number)}</strong></div>
         <div><span>Status</span><strong>${escapeHtml(statusLabel)}</strong></div>
@@ -915,19 +1433,16 @@
           ? `<div><span>Reserved until</span><strong>${escapeHtml(new Date(order.reserved_until).toLocaleString())}</strong></div>`
           : ""}
       </div>
-
-      <p class="muted order-token">
-        Private checkout token: ${escapeHtml(order.checkout_token)}
-      </p>
-
-      ${order.external_payment_url && !paid
+${order.external_payment_url &&
+          !paid &&
+          order.payment_method !== "external_card"
         ? `<a class="primary-button full-width" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:14px;"
               href="${escapeHtml(order.external_payment_url)}"
               target="_blank"
               rel="noopener">Continue to payment</a>`
         : ""}
 
-      ${!paid && order.payment_method !== "wallet"
+      ${!paid && ["zelle", "bank_transfer"].includes(order.payment_method)
         ? `<form id="paymentProofForm" class="payment-proof-form">
              <label>Upload payment receipt
                <input id="paymentProofFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required>
@@ -1106,7 +1621,17 @@
 
     document.getElementById("checkoutButton").addEventListener("click", openCheckout);
     document.getElementById("loginForm").addEventListener("submit", submitLogin);
+    document.getElementById("createAccountButton").addEventListener("click", beginNewAccount);
+    document.getElementById("continueGuestButton").addEventListener("click", continueAsGuest);
     document.getElementById("checkoutForm").addEventListener("submit", placeOrder);
+
+    document
+      .querySelectorAll('input[name="payment_method"]')
+      .forEach((input) => {
+        input.addEventListener("change", syncBankTransferFields);
+      });
+
+    syncBankTransferFields();
     document.getElementById("trackOrderForm").addEventListener("submit", trackOrder);
 
     elements.accountButton.addEventListener("click", () => {
@@ -1142,6 +1667,8 @@
           document.querySelector('input[name="payment_method"][value="external_card"]').checked = true;
           openLogin();
         }
+
+        updateCheckoutPaymentButton();
       });
     });
 
@@ -1150,12 +1677,109 @@
     });
   }
 
+  async function renderPendingPaymentResume() {
+    var existing = document.getElementById(
+      "jubieleePendingPaymentResume"
+    );
+
+    if (existing) {
+      existing.remove();
+    }
+
+    var candidate = state.lastOrder;
+
+    if (!candidate || !candidate.checkout_token) {
+      return;
+    }
+
+    try {
+      var result = await api(
+        "store/orders/" +
+          encodeURIComponent(candidate.checkout_token)
+      );
+
+      var order = result.data || null;
+
+      if (!order) {
+        return;
+      }
+
+      state.lastOrder = order;
+
+      localStorage.setItem(
+        "jubielee_store_last_order",
+        JSON.stringify(order)
+      );
+
+      var isPending =
+        order.status === "awaiting_payment" &&
+        order.payment_status === "awaiting_payment" &&
+        ["bank_transfer", "zelle"].includes(order.payment_method);
+
+      if (!isPending) {
+        return;
+      }
+
+      var banner = document.createElement("div");
+      banner.id = "jubieleePendingPaymentResume";
+      banner.style.position = "fixed";
+      banner.style.left = "14px";
+      banner.style.right = "14px";
+      banner.style.bottom = "14px";
+      banner.style.zIndex = "9999";
+      banner.style.maxWidth = "720px";
+      banner.style.margin = "0 auto";
+      banner.style.background = "#ffffff";
+      banner.style.borderRadius = "18px";
+      banner.style.padding = "14px";
+      banner.style.boxShadow =
+        "0 12px 40px rgba(0,0,0,.20)";
+
+      var statusText = order.payment_proof_received
+        ? "Receipt submitted — awaiting Jubielee verification."
+        : "This order is still waiting for payment.";
+
+      banner.innerHTML =
+        '<div style="font-weight:700;margin-bottom:4px;">' +
+          "Pending JubieStore payment" +
+        "</div>" +
+        '<div style="font-size:14px;margin-bottom:10px;">' +
+          escapeHtml(order.order_number || "") +
+          " • " +
+          escapeHtml(
+            money(order.currency, order.total_amount)
+          ) +
+          "<br>" +
+          escapeHtml(statusText) +
+        "</div>" +
+        '<button id="resumeJubieleePaymentButton" ' +
+          'class="primary-button full-width" type="button">' +
+          "Resume Payment / Upload Receipt" +
+        "</button>";
+
+      document.body.appendChild(banner);
+
+      document
+        .getElementById("resumeJubieleePaymentButton")
+        .addEventListener("click", function () {
+          window.location.assign(
+            "payment.html?token=" +
+              encodeURIComponent(order.checkout_token)
+          );
+        });
+    } catch (error) {
+      // A stale local order must never block normal shopping.
+    }
+  }
+
   async function init() {
     bindEvents();
     renderAccount();
     renderCart();
     updateCartCount();
     await Promise.all([loadCategories(), loadProducts()]);
+    await resumeIdentityOnboarding();
+    await renderPendingPaymentResume();
   }
 
   init();

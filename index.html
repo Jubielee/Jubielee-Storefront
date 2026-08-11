@@ -140,9 +140,51 @@
           </div>
         </div>
 
+        <div id="loginAccountChoice" hidden>
+          <p class="muted">
+            We could not find an existing Jubielee account with these details.
+            You can continue shopping as a guest, or create a Jubielee account.
+          </p>
+
+          <button
+            id="createAccountButton"
+            class="primary-button full-width"
+            type="button"
+          >
+            Create Jubielee Account
+          </button>
+
+          <button
+            id="continueGuestButton"
+            class="full-width"
+            type="button"
+            style="margin-top:10px"
+          >
+            Continue as Guest
+          </button>
+
+          <p class="muted" style="margin-top:12px">
+            Creating a Jubielee account requires identity verification
+            because Jubielee provides money transfer and other financial
+            services.
+          </p>
+        </div>
+
         <div id="loginOtpFields" hidden>
           <label>6-digit email code
             <input id="loginOtp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+          </label>
+        </div>
+
+        <div id="loginConsentFields" hidden>
+          <p class="muted">
+            To create your Jubielee account, we need to verify your identity
+            through our identity verification provider.
+          </p>
+
+          <label>
+            <input id="identityConsent" type="checkbox">
+            I consent to identity verification for my Jubielee account.
           </label>
         </div>
 
@@ -215,7 +257,7 @@
               </label>
               <label class="choice-card">
                 <input type="radio" name="payment_method" value="external_card" checked>
-                <span><strong>Card outside the app</strong><small>Continue to the configured secure payment page.</small></span>
+                <span><strong>Credit/Debit Card</strong><small>Enter your card information on Jubielee’s secure payment page.</small></span>
               </label>
               <label class="choice-card">
                 <input type="radio" name="payment_method" value="zelle">
@@ -223,15 +265,37 @@
               </label>
               <label class="choice-card">
                 <input type="radio" name="payment_method" value="bank_transfer">
-                <span><strong>Bank transfer</strong><small>Use the order payment reference.</small></span>
+                <span>
+                  <strong>Bank transfer</strong>
+                  <small>Choose the bank you are sending from. Jubielee will show the correct Going a2b receiving account.</small>
+                </span>
               </label>
+            </div>
+
+            <!-- JUBIELEE_STORE_BANK_TRANSFER_ROUTING_V1 -->
+            <div id="bankTransferFields" hidden style="margin-top:14px;">
+              <label>
+                Bank you are sending from
+                <select id="checkoutSenderBank" name="sender_bank">
+                  <option value="">Select your bank</option>
+                  <option value="banreservas">BanReservas</option>
+                  <option value="popular">Banco Popular</option>
+                  <option value="bhd">BHD</option>
+                  <option value="lafise">Banco Lafise</option>
+                  <option value="santa_cruz">Banco Santa Cruz</option>
+                  <option value="other">Another bank / credit union</option>
+                </select>
+              </label>
+
+              <small class="muted">
+                If the selected bank has an active Going a2b account in the payment currency,
+                Jubielee will use that bank. Otherwise the transfer will be routed to BanReservas.
+              </small>
             </div>
 
             <div id="checkoutSummary" class="checkout-summary"></div>
             <p id="checkoutMessage" class="form-message"></p>
-            <button id="placeOrderButton" class="primary-button full-width" type="submit">
-              Place order
-            </button>
+            <button id="placeOrderButton" class="primary-button full-width" type="submit">Continue to secure payment</button>
           </div>
         </div>
       </form>
@@ -308,8 +372,8 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="config.js?v=1"></script>
-  <script src="app.js?v=20260801-buy-split-2"></script>
+  <script src="config.js?v=20260810-identity1"></script>
+  <script src="app.js?v=20260811-continuity1"></script>
 
   <script>
     (function () {

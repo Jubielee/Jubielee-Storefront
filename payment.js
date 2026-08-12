@@ -13,6 +13,46 @@
     content: document.getElementById("paymentContent"),
     instructions: document.getElementById("paymentInstructions"),
     order: document.getElementById("paymentOrder"),
+
+    changeBankSection:
+      document.getElementById(
+        "changePaymentBankSection"
+      ),
+
+    changeBankButton:
+      document.getElementById(
+        "changePaymentBankButton"
+      ),
+
+    changeBankPanel:
+      document.getElementById(
+        "changePaymentBankPanel"
+      ),
+
+    changeBankQuestion:
+      document.getElementById(
+        "changePaymentBankQuestion"
+      ),
+
+    changeBankSelect:
+      document.getElementById(
+        "changePaymentBankSelect"
+      ),
+
+    saveBankButton:
+      document.getElementById(
+        "savePaymentBankButton"
+      ),
+
+    cancelBankChangeButton:
+      document.getElementById(
+        "cancelPaymentBankChangeButton"
+      ),
+
+    changeBankMessage:
+      document.getElementById(
+        "changePaymentBankMessage"
+      ),
     proofForm: document.getElementById("paymentProofForm"),
     proofFile: document.getElementById("paymentProofFile"),
     proofHelp: document.getElementById("paymentProofHelp"),
@@ -33,6 +73,15 @@
   };
 
   var currentOrder = null;
+
+  /*
+   * File picker safety.
+   *
+   * Opening the phone gallery/files app temporarily causes
+   * browser focus/visibility changes. Do not refresh the order
+   * while the customer is selecting or uploading proof.
+   */
+  var proofInteractionActive = false;
   var selectedOtherLauncher = null;
 
   var translations = {
@@ -246,6 +295,7 @@
 
   async function api(endpoint, options) {
     var opts = options || {};
+
     var headers = Object.assign(
       { Accept: "application/json" },
       opts.headers || {}
@@ -269,16 +319,36 @@
       }
     );
 
-    var payload;
+    var rawResponse = await response.text();
+    var payload = {};
 
     try {
-      payload = await response.json();
+      payload = rawResponse ? JSON.parse(rawResponse) : {};
     } catch (error) {
-      throw new Error(copy.loadFailed);
+      var invalidResponse = new Error(
+        "The store server returned an invalid response (HTTP " +
+        response.status +
+        ")."
+      );
+
+      invalidResponse.status = response.status;
+      throw invalidResponse;
     }
 
     if (!response.ok || String(payload.status) === "0") {
-      throw new Error(payload.msg || copy.loadFailed);
+      var requestError = new Error(
+        payload.msg ||
+        (
+          "Store request failed (HTTP " +
+          response.status +
+          ")."
+        )
+      );
+
+      requestError.status = response.status;
+      requestError.payload = payload;
+
+      throw requestError;
     }
 
     return payload;
@@ -411,15 +481,15 @@
   function bankTransferInstruction() {
     var messages = {
       en:
-        "Transfer the exact amount to the account shown below, use the payment reference, then upload your receipt.",
+        "Send the exact amount shown below to this bank account. After you send it, upload your receipt.",
       es:
-        "Realice la transferencia por el monto exacto a la cuenta indicada abajo, use la referencia de pago y luego suba su comprobante.",
+        "Envía el monto exacto que aparece abajo a esta cuenta bancaria. Después de enviarlo, sube tu comprobante.",
       ht:
-        "Fè transfè a pou montan egzak la nan kont ki anba a, sèvi ak referans peman an, epi telechaje resi a.",
+        "Voye montan egzak ki parèt anba a nan kont labank sa a. Apre sa, telechaje resi ou.",
       fr:
-        "Effectuez le virement du montant exact vers le compte indiqué ci-dessous, utilisez la référence de paiement, puis téléversez votre reçu.",
+        "Envoyez le montant exact indiqué ci-dessous sur ce compte bancaire. Ensuite, téléversez votre reçu.",
       pt:
-        "Faça a transferência do valor exato para a conta abaixo, use a referência de pagamento e depois envie o comprovante."
+        "Envie o valor exato mostrado abaixo para esta conta bancária. Depois, envie seu comprovante."
     };
 
     return messages[language] || messages.en;
@@ -428,9 +498,9 @@
   function receivingBankLabels() {
     var labels = {
       en: {
-        amount: "Amount to transfer",
-        bank: "Bank",
-        holder: "Account holder",
+        amount: "Amount needed to transfer",
+        bank: "Bank name",
+        holder: "Account holder name",
         rnc: "RNC",
         type: "Account type",
         number: "Account number",
@@ -438,9 +508,9 @@
         routed: "Routing"
       },
       es: {
-        amount: "Monto a transferir",
+        amount: "Monto que debes transferir",
         bank: "Banco",
-        holder: "Titular",
+        holder: "Nombre del titular",
         rnc: "RNC",
         type: "Tipo de cuenta",
         number: "Número de cuenta",
@@ -449,7 +519,7 @@
       },
       ht: {
         amount: "Montan pou transfere",
-        bank: "Bank",
+        bank: "Bank name",
         holder: "Titilè kont",
         rnc: "RNC",
         type: "Kalite kont",
@@ -470,7 +540,7 @@
       pt: {
         amount: "Valor a transferir",
         bank: "Banco",
-        holder: "Titular",
+        holder: "Nombre del titular",
         rnc: "RNC",
         type: "Tipo de conta",
         number: "Número da conta",
@@ -494,32 +564,76 @@
     var bank = order.receiving_bank;
     var labels = receivingBankLabels();
 
+    /*
+     * Customer only needs six things:
+     *
+     * 1 Amount
+     * 2 Bank
+     * 3 Account holder
+     * 4 Account number
+     * 5 RNC
+     * 6 Currency
+     */
+
     addOrderRow(
       labels.amount,
-      money(bank.currency, bank.amount)
+      money(
+        bank.currency || order.currency,
+        bank.amount || order.total_amount
+      )
     );
 
-    addOrderRow(labels.bank, clean(bank.bank_name));
-    addOrderRow(labels.holder, clean(bank.account_holder));
-    addOrderRow(labels.rnc, clean(bank.rnc));
-    addOrderRow(labels.type, clean(bank.account_type_label));
-    addOrderRow(labels.number, clean(bank.account_number));
-    addOrderRow(labels.currency, clean(bank.currency));
+    /*
+     * Make the amount impossible to miss.
+     */
+    var amountRow = elements.order.lastElementChild;
 
-    if (bank.used_fallback) {
-      addOrderRow(
-        labels.routed,
-        "BanReservas"
-      );
+    if (amountRow) {
+      amountRow.style.padding = "18px 0";
+      amountRow.style.marginBottom = "8px";
+      amountRow.style.borderBottom =
+        "2px solid rgba(0,0,0,.08)";
+
+      var amountValue = amountRow.querySelector("strong");
+
+      if (amountValue) {
+        amountValue.style.fontSize = "28px";
+        amountValue.style.fontWeight = "800";
+      }
     }
+
+    addOrderRow(
+      labels.bank,
+      clean(bank.bank_name)
+    );
+
+    addOrderRow(
+      labels.holder,
+      clean(bank.account_holder)
+    );
+
+    addOrderRow(
+      labels.number,
+      clean(bank.account_number)
+    );
+
+    addOrderRow(
+      labels.rnc,
+      clean(bank.rnc)
+    );
+
+    addOrderRow(
+      labels.currency,
+      clean(bank.currency || order.currency)
+    );
   }
 
   // JUBIELEE_STORE_PAYMENT_CONTINUITY_V1
   function actionLabels() {
     var labels = {
       en: {
-        copy: "Copy transfer information",
-        copied: "Transfer information copied.",
+        copy: "Copy bank information",
+        copied: "Bank information copied.",
         open: "Open %s App",
         search: "Find your banking app",
         cancel: "Cancel Order & Return to Store",
@@ -531,8 +645,8 @@
           "Choose a bank from the search results first."
       },
       es: {
-        copy: "Copiar información de transferencia",
-        copied: "Información de transferencia copiada.",
+        copy: "Copiar información bancaria",
+        copied: "Información bancaria copiada.",
         open: "Abrir app de %s",
         search: "Busque su aplicación bancaria",
         cancel: "Cancelar orden y volver a la tienda",
@@ -834,6 +948,254 @@
       elements.bankAppPickerWrap.hidden;
   }
 
+
+  // JUBIELEE_STORE_SIMPLE_BANK_COPY_V1
+  function copySimpleBankPaymentInfo(order) {
+    if (!order || !order.receiving_bank) {
+      return;
+    }
+
+    var bank = order.receiving_bank;
+    var labels = receivingBankLabels();
+
+    var text = [
+      labels.amount + ": " +
+        money(
+          bank.currency || order.currency,
+          bank.amount || order.total_amount
+        ),
+
+      labels.bank + ": " +
+        clean(bank.bank_name),
+
+      labels.holder + ": " +
+        clean(bank.account_holder),
+
+      labels.number + ": " +
+        clean(bank.account_number),
+
+      labels.rnc + ": " +
+        clean(bank.rnc),
+
+      labels.currency + ": " +
+        clean(bank.currency || order.currency)
+    ].join("\\n");
+
+    function fallbackCopy() {
+      var textarea = document.createElement("textarea");
+
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+
+      document.body.appendChild(textarea);
+
+      textarea.select();
+      textarea.setSelectionRange(
+        0,
+        textarea.value.length
+      );
+
+      try {
+        document.execCommand("copy");
+      } catch (error) {
+        // Do not interrupt the payment flow.
+      }
+
+      document.body.removeChild(textarea);
+    }
+
+    if (
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === "function"
+    ) {
+      navigator.clipboard
+        .writeText(text)
+        .catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  }
+
+  function copyPaymentInfoForCustomer(order) {
+    if (
+      order &&
+      order.payment_method === "bank_transfer" &&
+      order.receiving_bank
+    ) {
+      copySimpleBankPaymentInfo(order);
+      return;
+    }
+
+    copyTransferInfo(order);
+  }
+
+  // JUBIELEE_STORE_CHANGE_BANK_JS_V3
+
+  function changeBankCopy() {
+    var labels = {
+      en: {
+        change: "Change bank",
+        question: "Which bank will you send from?",
+        select: "Select bank",
+        use: "Use this bank",
+        keep: "Keep current bank",
+        changing: "Changing bank..."
+      },
+
+      es: {
+        change: "Cambiar banco",
+        question: "¿Desde qué banco hará la transferencia?",
+        select: "Seleccione banco",
+        use: "Usar este banco",
+        keep: "Mantener banco actual",
+        changing: "Cambiando banco..."
+      },
+
+      ht: {
+        change: "Chanje bank",
+        question: "Nan ki bank ou pral voye transfè a?",
+        select: "Chwazi bank",
+        use: "Sèvi ak bank sa a",
+        keep: "Kenbe bank aktyèl la",
+        changing: "N ap chanje bank..."
+      },
+
+      fr: {
+        change: "Changer de banque",
+        question:
+          "Depuis quelle banque ferez-vous le virement ?",
+        select: "Sélectionner la banque",
+        use: "Utiliser cette banque",
+        keep: "Garder la banque actuelle",
+        changing: "Changement de banque..."
+      },
+
+      pt: {
+        change: "Alterar banco",
+        question:
+          "De qual banco você fará a transferência?",
+        select: "Selecione o banco",
+        use: "Usar este banco",
+        keep: "Manter banco atual",
+        changing: "Alterando banco..."
+      }
+    };
+
+    return labels[language] || labels.en;
+  }
+
+  function configureBankChange(order) {
+    if (!elements.changeBankSection) {
+      return;
+    }
+
+    var allowed =
+      !!order &&
+      order.payment_method === "bank_transfer" &&
+      order.status === "awaiting_payment" &&
+      order.payment_status === "awaiting_payment" &&
+      !order.payment_proof_received;
+
+    elements.changeBankSection.hidden =
+      !allowed;
+
+    if (!allowed) {
+      elements.changeBankPanel.hidden = true;
+      return;
+    }
+
+    var labels = changeBankCopy();
+
+    elements.changeBankButton.textContent =
+      labels.change;
+
+    elements.changeBankQuestion.textContent =
+      labels.question;
+
+    elements.saveBankButton.textContent =
+      labels.use;
+
+    elements.cancelBankChangeButton.textContent =
+      labels.keep;
+
+    elements.changeBankSelect.options[0].text =
+      labels.select;
+  }
+
+  async function changePaymentBank() {
+    if (!currentOrder) {
+      return;
+    }
+
+    var labels = changeBankCopy();
+
+    var senderBank = clean(
+      elements.changeBankSelect.value
+    );
+
+    elements.changeBankMessage.textContent = "";
+
+    if (!senderBank) {
+      elements.changeBankMessage.textContent =
+        labels.select + ".";
+      return;
+    }
+
+    elements.saveBankButton.disabled = true;
+    elements.changeBankButton.disabled = true;
+
+    elements.saveBankButton.textContent =
+      labels.changing;
+
+    try {
+      var result = await api(
+        "store/orders/" +
+          encodeURIComponent(checkoutToken) +
+          "/change-bank",
+        {
+          method: "POST",
+          body: {
+            sender_bank: senderBank
+          }
+        }
+      );
+
+      /*
+       * The backend gives us the complete rebuilt order.
+       * renderOrder() updates:
+       *
+       * - Bank name
+       * - Account holder
+       * - Account number
+       * - RNC
+       * - Currency
+       * - Open Bank App target
+       */
+      renderOrder(result.data);
+
+      elements.changeBankPanel.hidden = true;
+      elements.changeBankSelect.value = "";
+
+      elements.pageMessage.textContent =
+        result.msg ||
+        "Bank changed. Use the updated information below.";
+
+    } catch (error) {
+      elements.changeBankMessage.textContent =
+        error.message;
+
+    } finally {
+      elements.saveBankButton.disabled = false;
+      elements.changeBankButton.disabled = false;
+
+      elements.saveBankButton.textContent =
+        labels.use;
+    }
+  }
+
+
   function renderOrder(order) {
     currentOrder = order;
     saveCurrentOrder(order);
@@ -841,69 +1203,173 @@
     var paid = order.payment_status === "paid";
     var proofAllowed = canUploadProof(order);
 
+    var simpleBankTransfer =
+      order.payment_method === "bank_transfer" &&
+      order.payment_status === "awaiting_payment" &&
+      order.status === "awaiting_payment" &&
+      !paid;
+
     elements.loading.hidden = true;
     elements.content.hidden = false;
     elements.pageMessage.textContent = "";
 
     if (paid) {
       elements.title.textContent = copy.paidTitle;
-      elements.instructions.textContent = copy.paidMessage;
+      elements.instructions.textContent =
+        copy.paidMessage;
     } else if (
-      ["external_card", "manual_card"].indexOf(order.payment_method) !== -1 &&
+      ["external_card", "manual_card"].indexOf(
+        order.payment_method
+      ) !== -1 &&
       order.payment_status === "processing"
     ) {
-      elements.title.textContent = readableStatus(order.payment_status);
-      elements.instructions.textContent = "Card payment is being reviewed.";
-    } else if (order.payment_method === "bank_transfer") {
+      elements.title.textContent =
+        readableStatus(order.payment_status);
+
+      elements.instructions.textContent =
+        "Card payment is being reviewed.";
+    } else if (
+      order.payment_method === "bank_transfer"
+    ) {
       elements.title.textContent = copy.bankTitle;
-      elements.instructions.textContent =        bankTransferInstruction();
-    } else if (order.payment_method === "zelle") {
-      elements.title.textContent = copy.zelleTitle;
       elements.instructions.textContent =
-        order.payment_instructions || copy.completePayment;
+        bankTransferInstruction();
+    } else if (
+      order.payment_method === "zelle"
+    ) {
+      elements.title.textContent =
+        copy.zelleTitle;
+
+      elements.instructions.textContent =
+        order.payment_instructions ||
+        copy.completePayment;
     } else {
-      elements.title.textContent = copy.completePayment;
+      elements.title.textContent =
+        copy.completePayment;
+
       elements.instructions.textContent =
-        order.payment_instructions || copy.completePayment;
+        order.payment_instructions ||
+        copy.completePayment;
     }
 
     elements.order.innerHTML = "";
 
-    addOrderRow(copy.order, order.order_number || "—");
-    addOrderRow(copy.status, readableStatus(order.status));
-    addOrderRow(copy.payment, readableStatus(order.payment_status));
-    addOrderRow(copy.method, methodLabel(order.payment_method));
-    addReceivingBankRows(order);
-    addOrderRow(copy.reference, order.payment_reference || "—");
-    addOrderRow(copy.total, money(order.currency, order.total_amount));
+    if (simpleBankTransfer) {
+      /*
+       * BANK PAYMENT MODE
+       *
+       * Do not show:
+       * - order number
+       * - status
+       * - payment status
+       * - payment method
+       * - reference
+       * - total duplicate
+       * - reservation deadline
+       * - order items
+       * - order progress
+       */
+      addReceivingBankRows(order);
 
-    renderItems(order);
-    renderTimeline(order);
-    configurePaymentActions(order);
+      if (elements.itemsSection) {
+        elements.itemsSection.hidden = true;
+      }
 
-    if (order.reserved_until) {
+      if (elements.timelineSection) {
+        elements.timelineSection.hidden = true;
+      }
+
+      if (elements.refreshButton) {
+        elements.refreshButton.style.display =
+          "none";
+      }
+    } else {
+      /*
+       * Normal/full order view after the payment stage.
+       */
       addOrderRow(
-        copy.reservedUntil,
-        new Date(order.reserved_until).toLocaleString()
+        copy.order,
+        order.order_number || "—"
       );
+
+      addOrderRow(
+        copy.status,
+        readableStatus(order.status)
+      );
+
+      addOrderRow(
+        copy.payment,
+        readableStatus(order.payment_status)
+      );
+
+      addOrderRow(
+        copy.method,
+        methodLabel(order.payment_method)
+      );
+
+      addReceivingBankRows(order);
+
+      addOrderRow(
+        copy.reference,
+        order.payment_reference || "—"
+      );
+
+      addOrderRow(
+        copy.total,
+        money(
+          order.currency,
+          order.total_amount
+        )
+      );
+
+      renderItems(order);
+      renderTimeline(order);
+
+      if (order.reserved_until) {
+        addOrderRow(
+          copy.reservedUntil,
+          new Date(
+            order.reserved_until
+          ).toLocaleString()
+        );
+      }
+
+      if (elements.refreshButton) {
+        elements.refreshButton.style.display =
+          "";
+      }
     }
+
+    /*
+     * Keep all existing payment controls:
+     * copy, bank launcher/search and cancellation.
+     */
+    configurePaymentActions(order);
+    configureBankChange(order);
 
     elements.proofForm.hidden = !proofAllowed;
 
     if (proofAllowed) {
-      elements.proofHelp.textContent = order.payment_proof_received
-        ? copy.receiptAlready
-        : copy.receiptHelp;
+      elements.proofHelp.textContent =
+        order.payment_proof_received
+          ? copy.receiptAlready
+          : copy.receiptHelp;
 
-      elements.proofButton.textContent = order.payment_proof_received
-        ? copy.replaceReceipt
-        : copy.submitReceipt;
+      elements.proofButton.textContent =
+        order.payment_proof_received
+          ? copy.replaceReceipt
+          : copy.submitReceipt;
 
       if (order.payment_proof_received) {
-        elements.pageMessage.textContent = copy.pendingReview;
+        elements.pageMessage.textContent =
+          copy.pendingReview;
       }
-    } else if (!paid && isFinalOrder(order)) {
-      elements.pageMessage.textContent = copy.finalOrder;
+    } else if (
+      !paid &&
+      isFinalOrder(order)
+    ) {
+      elements.pageMessage.textContent =
+        copy.finalOrder;
     }
   }
 
@@ -922,17 +1388,57 @@
       renderOrder(result.data);
     } catch (error) {
       elements.loading.hidden = true;
-      elements.pageMessage.textContent = error.message;
+
+      if (!currentOrder) {
+        elements.pageMessage.textContent =
+          error.message;
+      }
     }
   }
 
   function startAutomaticRefresh() {
     window.setInterval(function () {
-      if (!document.hidden && currentOrder && !isFinalOrder(currentOrder)) {
+      if (!document.hidden &&
+        currentOrder &&
+        !isFinalOrder(currentOrder) &&
+        !proofInteractionActive) {
         loadOrder();
       }
     }, 10000);
   }
+
+  // JUBIELEE_STORE_CHANGE_BANK_EVENTS_V3
+
+  elements.changeBankButton.addEventListener(
+    "click",
+    function () {
+      elements.changeBankMessage.textContent = "";
+
+      elements.changeBankPanel.hidden =
+        !elements.changeBankPanel.hidden;
+
+      if (!elements.changeBankPanel.hidden) {
+        window.setTimeout(function () {
+          elements.changeBankSelect.focus();
+        }, 50);
+      }
+    }
+  );
+
+  elements.cancelBankChangeButton.addEventListener(
+    "click",
+    function () {
+      elements.changeBankPanel.hidden = true;
+      elements.changeBankSelect.value = "";
+      elements.changeBankMessage.textContent = "";
+    }
+  );
+
+  elements.saveBankButton.addEventListener(
+    "click",
+    changePaymentBank
+  );
+
 
   elements.copyButton.addEventListener(
     "click",
@@ -941,12 +1447,13 @@
         return;
       }
 
-      copyTransferInfo(currentOrder);
+      copyPaymentInfoForCustomer(currentOrder);
       elements.pageMessage.textContent =
         actionLabels().copied;
     }
   );
 
+  // JUBIELEE_STORE_BANK_NEW_WINDOW_V3
   elements.openBankButton.addEventListener(
     "click",
     function () {
@@ -970,13 +1477,37 @@
         return;
       }
 
-      // Copy the exact payment instructions before leaving
-      // the browser for the banking application.
-      copyTransferInfo(currentOrder);
+      /*
+       * Preserve JubieStore.
+       *
+       * Open a second browser context first while we are still
+       * inside the customer's click gesture, then send that
+       * second context to the bank app / app store / bank site.
+       *
+       * The original payment page stays open with the receipt
+       * uploader ready.
+       */
+      var bankWindow = window.open(
+        "about:blank",
+        "_blank"
+      );
 
-      window.location.href = target;
+      if (!bankWindow) {
+        elements.pageMessage.textContent =
+          "Please allow the bank window to open and try again.";
+        return;
+      }
+
+      try {
+        bankWindow.opener = null;
+      } catch (error) {
+        // Browser may restrict access. Continue safely.
+      }
+
+      bankWindow.location.href = target;
     }
   );
+
 
   elements.bankAppSearch.addEventListener(
     "input",
@@ -1043,7 +1574,8 @@
       if (
         !document.hidden &&
         currentOrder &&
-        !isFinalOrder(currentOrder)
+        !isFinalOrder(currentOrder) &&
+        !proofInteractionActive
       ) {
         loadOrder();
       }
@@ -1053,11 +1585,33 @@
   window.addEventListener("focus", function () {
     if (
       currentOrder &&
-      !isFinalOrder(currentOrder)
-    ) {
-      window.setTimeout(loadOrder, 250);
+        !isFinalOrder(currentOrder) &&
+        !proofInteractionActive
+      ) {
+        window.setTimeout(loadOrder, 250);
     }
   });
+
+  // JUBIELEE_STORE_PROOF_PICKER_GUARD_V1
+  elements.proofFile.addEventListener(
+    "click",
+    function () {
+      proofInteractionActive = true;
+      elements.proofMessage.textContent = "";
+    }
+  );
+
+  elements.proofFile.addEventListener(
+    "change",
+    function () {
+      proofInteractionActive = !!(
+        elements.proofFile.files &&
+        elements.proofFile.files.length
+      );
+
+      elements.proofMessage.textContent = "";
+    }
+  );
 
   elements.proofForm.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -1114,6 +1668,7 @@
       renderOrder(result.data);
       elements.pageMessage.textContent = copy.receiptSubmitted;
       elements.proofFile.value = "";
+      proofInteractionActive = false;
     } catch (error) {
       elements.proofMessage.textContent = error.message;
     } finally {

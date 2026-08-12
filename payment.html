@@ -28,6 +28,68 @@
         <div id="paymentOrder" class="order-card"></div>
 
         <!-- JUBIELEE_STORE_PAYMENT_CONTINUITY_V1 -->
+        <!-- JUBIELEE_STORE_CHANGE_BANK_V3 -->
+        <section id="changePaymentBankSection"
+          style="margin-top:12px;"
+          hidden>
+
+          <button id="changePaymentBankButton"
+            class="ghost-button full-width"
+            type="button">
+            Change bank
+          </button>
+
+          <div id="changePaymentBankPanel"
+            class="order-card"
+            style="margin-top:10px;"
+            hidden>
+
+            <div id="changePaymentBankQuestion"
+              style="font-weight:700;margin-bottom:10px;">
+              Which bank will you send from?
+            </div>
+
+            <select id="changePaymentBankSelect"
+              style="
+                width:100%;
+                padding:12px;
+                border:1px solid #d8e1dc;
+                border-radius:10px;
+                background:#fff;
+              ">
+
+              <option value="">Select bank</option>
+              <option value="banreservas">BanReservas</option>
+              <option value="popular">Banco Popular</option>
+              <option value="bhd">BHD</option>
+              <option value="lafise">Banco Lafise</option>
+              <option value="santa_cruz">Banco Santa Cruz</option>
+              <option value="other">
+                Other bank / credit union
+              </option>
+
+            </select>
+
+            <button id="savePaymentBankButton"
+              class="secondary-button full-width"
+              style="margin-top:12px;"
+              type="button">
+              Use this bank
+            </button>
+
+            <button id="cancelPaymentBankChangeButton"
+              class="ghost-button full-width"
+              style="margin-top:8px;"
+              type="button">
+              Keep current bank
+            </button>
+
+            <p id="changePaymentBankMessage"
+              class="form-message"></p>
+
+          </div>
+        </section>
+
         <section id="paymentActions"
           style="margin-top:16px;"
           hidden>
@@ -36,7 +98,7 @@
             class="secondary-button full-width"
             type="button"
             hidden>
-            Copy transfer information
+            Copy bank information
           </button>
 
           <div id="bankAppPickerWrap"
@@ -124,6 +186,6 @@
   </main>
 
   <script src="config.js?v=20260804-3"></script>
-  <script src="payment.js?v=20260811-continuity1"></script>
+  <script src="payment.js?v=20260811-changebank4"></script>
 </body>
 </html>

@@ -1,0 +1,99 @@
+.seller-order-card {
+  margin: 16px;
+  border: 1px solid #dfe8e3;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.seller-order-head,
+.seller-order-item-main,
+.seller-order-status-row,
+.seller-order-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.seller-order-head {
+  padding: 18px;
+  border-bottom: 1px solid #edf2ef;
+}
+
+.seller-order-head h3 {
+  margin: 4px 0 2px;
+}
+
+.seller-order-contact {
+  text-align: right;
+  font-size: 14px;
+}
+
+.seller-order-delivery {
+  display: grid;
+  gap: 6px;
+  padding: 14px 18px;
+  background: #f8fbf9;
+  border-bottom: 1px solid #edf2ef;
+}
+
+.seller-order-items {
+  display: grid;
+}
+
+.seller-order-item {
+  padding: 16px 18px;
+  border-bottom: 1px solid #edf2ef;
+}
+
+.seller-order-item:last-child {
+  border-bottom: 0;
+}
+
+.seller-order-status-row {
+  justify-content: flex-start;
+  margin-top: 10px;
+}
+
+.seller-order-actions {
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.seller-order-status-select {
+  min-width: 190px;
+  padding: 8px 10px;
+  border: 1px solid #ccd8d1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.seller-order-note {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #f4f7f5;
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .seller-order-head,
+  .seller-order-item-main {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .seller-order-contact {
+    text-align: left;
+  }
+
+  .seller-order-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .seller-order-status-select {
+    width: 100%;
+  }
+}

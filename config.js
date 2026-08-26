@@ -12,6 +12,11 @@ window.JUBIELEE_STOREFRONT_CONFIG = {
     return;
   }
 
+  var style = document.createElement("link");
+  style.rel = "stylesheet";
+  style.href = "seller-orders.css?v=20260826-marketplace-1";
+  document.head.appendChild(style);
+
   var script = document.createElement("script");
   script.src = "seller-orders.js?v=20260826-marketplace-1";
   script.defer = true;

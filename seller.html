@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Seller Center | Jubielee Store</title>
+  <meta name="description" content="Sell on Jubielee Store, manage products, receive sales alerts, and move Store earnings to your Jubielee Wallet.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#087c45">
+  <link rel="icon" href="assets/store-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="seller.css?v=20260826-marketplace-1">
+</head>
+<body class="seller-body">
+  <header class="seller-header">
+    <a class="seller-brand" href="index.html">
+      <span class="seller-brand-mark">J</span>
+      <span><strong>Jubielee</strong><small>Seller Center</small></span>
+    </a>
+    <div class="seller-header-actions">
+      <a class="seller-button secondary" href="index.html">Shop JubieStore</a>
+      <button id="sellerSignOut" class="seller-button secondary" type="button" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main class="seller-shell">
+    <section id="sellerLoginView" class="seller-login-wrap" hidden>
+      <div class="seller-card seller-login">
+        <div class="seller-card-body">
+          <span class="seller-eyebrow">Jubielee account required</span>
+          <h1>Sell on Jubielee</h1>
+          <p>Use the Jubielee account you already use in the app. Seller earnings can remain in your Store Balance or move automatically to your Jubielee Wallet.</p>
+
+          <form id="sellerLoginForm" class="seller-login-step">
+            <div id="sellerLoginCredentials">
+              <div class="seller-form-grid">
+                <label class="seller-field full">Email
+                  <input id="sellerLoginEmail" type="email" autocomplete="email" required>
+                </label>
+                <label class="seller-field third">Country code
+                  <select id="sellerLoginPhoneCode">
+                    <option value="1">+1</option>
+                    <option value="509">+509</option>
+                    <option value="52">+52</option>
+                    <option value="57">+57</option>
+                    <option value="58">+58</option>
+                    <option value="507">+507</option>
+                  </select>
+                </label>
+                <label class="seller-field" style="grid-column:span 8">Phone
+                  <input id="sellerLoginPhone" type="tel" autocomplete="tel" required>
+                </label>
+              </div>
+            </div>
+
+            <div id="sellerLoginOtpWrap" hidden>
+              <label class="seller-field full">6-digit email code
+                <input id="sellerLoginOtp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+              </label>
+            </div>
+
+            <p id="sellerLoginMessage" class="seller-message"></p>
+            <div class="seller-actions">
+              <button id="sellerLoginSubmit" class="seller-button" type="submit">Continue</button>
+              <a class="seller-button secondary" href="index.html">Need a Jubielee account?</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="sellerEnrollmentView" class="seller-login-wrap" hidden>
+      <div class="seller-card seller-login">
+        <div class="seller-card-body">
+          <span class="seller-eyebrow">Seller setup</span>
+          <h1>Open your JubieStore</h1>
+          <p>Your Jubielee account is verified. Choose the name customers will see. Jubielee will automatically apply your assigned commission rules to sales.</p>
+          <form id="sellerEnrollmentForm">
+            <label class="seller-field full">Store name
+              <input id="sellerEnrollmentName" maxlength="180" required placeholder="Example: Margaret's Closet">
+            </label>
+            <p class="seller-muted">Products may require Jubielee approval before they appear publicly. Your payout destination is your existing Jubielee Wallet.</p>
+            <p id="sellerEnrollmentMessage" class="seller-message"></p>
+            <button class="seller-button" type="submit">Create Seller Account</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="sellerDashboardView" hidden>
+      <div class="seller-hero">
+        <div>
+          <span class="seller-eyebrow">Seller Center</span>
+          <h1 id="sellerStoreName">Your JubieStore</h1>
+          <p id="sellerWelcomeText">Manage products, money, alerts, and your storefront.</p>
+        </div>
+        <a id="sellerPublicStoreLink" class="seller-public-link" href="#" target="_blank" rel="noopener">View public store →</a>
+      </div>
+
+      <nav class="seller-tabs" aria-label="Seller sections">
+        <button class="seller-tab active" type="button" data-seller-tab="overview">Overview</button>
+        <button class="seller-tab" type="button" data-seller-tab="products">Products</button>
+        <button class="seller-tab" type="button" data-seller-tab="money">Money</button>
+        <button class="seller-tab" type="button" data-seller-tab="settings">Settings</button>
+      </nav>
+
+      <section id="sellerTabOverview" data-seller-panel="overview">
+        <div id="sellerStats" class="seller-stat-grid"></div>
+
+        <div class="seller-card" style="margin-top:16px">
+          <div class="seller-card-header"><h2>Store Balances</h2><span class="seller-muted">After Jubielee commission</span></div>
+          <div class="seller-card-body"><div id="sellerBalances" class="seller-balance-grid"></div></div>
+        </div>
+
+        <div class="seller-card" style="margin-top:16px">
+          <div class="seller-card-header"><h2>Recent Sales</h2></div>
+          <div id="sellerRecentSales" class="seller-table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="sellerTabProducts" data-seller-panel="products" hidden>
+        <div class="seller-card">
+          <div class="seller-card-header">
+            <div><h2>Your Products</h2><div class="seller-muted">Upload and manage your own inventory.</div></div>
+            <button id="sellerAddProduct" class="seller-button" type="button">+ Add Product</button>
+          </div>
+          <div id="sellerProducts" class="seller-table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="sellerTabMoney" data-seller-panel="money" hidden>
+        <div class="seller-grid">
+          <div class="seller-card half">
+            <div class="seller-card-header"><h2>Send Store Money to Jubielee</h2></div>
+            <div class="seller-card-body">
+              <p class="seller-muted">Create a payout from your Store Balance to your Jubielee Wallet. The Wallet currency must match the Store Balance currency.</p>
+              <form id="sellerPayoutForm">
+                <div class="seller-form-grid">
+                  <label class="seller-field third">Currency
+                    <select id="sellerPayoutCurrency" required><option value="USD">USD</option><option value="DOP">DOP</option></select>
+                  </label>
+                  <label class="seller-field" style="grid-column:span 8">Amount
+                    <input id="sellerPayoutAmount" type="number" min="0.01" step="0.01" required>
+                  </label>
+                </div>
+                <p id="sellerPayoutMessage" class="seller-message"></p>
+                <button class="seller-button" type="submit">Send to Jubielee Wallet</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="seller-card half">
+            <div class="seller-card-header"><h2>Balance Alert</h2></div>
+            <div class="seller-card-body">
+              <p class="seller-muted">Tell Jubielee when to alert you that your Store Balance has crossed an amount you choose.</p>
+              <form id="sellerBalanceAlertForm">
+                <div class="seller-form-grid">
+                  <label class="seller-field third">Currency
+                    <select id="sellerAlertCurrency" required><option value="USD">USD</option><option value="DOP">DOP</option></select>
+                  </label>
+                  <label class="seller-field" style="grid-column:span 8">Alert me when balance reaches
+                    <input id="sellerAlertAmount" type="number" min="0.01" step="0.01" required>
+                  </label>
+                </div>
+                <label class="seller-check" style="margin-top:12px"><input id="sellerAlertEnabled" type="checkbox" checked> Enable this alert</label>
+                <p id="sellerAlertMessage" class="seller-message"></p>
+                <button class="seller-button secondary" type="submit">Save Balance Alert</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="seller-card" style="margin-top:16px">
+          <div class="seller-card-header"><h2>Store Ledger</h2><button id="sellerRefreshLedger" class="seller-button secondary small" type="button">Refresh</button></div>
+          <div id="sellerLedger" class="seller-table-wrap"></div>
+        </div>
+
+        <div class="seller-card" style="margin-top:16px">
+          <div class="seller-card-header"><h2>Payout History</h2></div>
+          <div id="sellerPayouts" class="seller-table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="sellerTabSettings" data-seller-panel="settings" hidden>
+        <div class="seller-grid">
+          <div class="seller-card half">
+            <div class="seller-card-header"><h2>Store Settings</h2></div>
+            <div class="seller-card-body">
+              <form id="sellerSettingsForm">
+                <label class="seller-field full">Store name
+                  <input id="sellerSettingsStoreName" maxlength="180" required>
+                </label>
+                <label class="seller-field full" style="margin-top:14px">Where should new earnings go?
+                  <select id="sellerSettlementMode">
+                    <option value="store_balance">Keep in Store Balance</option>
+                    <option value="wallet_auto">Automatically move to Jubielee Wallet</option>
+                  </select>
+                </label>
+                <div class="seller-divider"></div>
+                <label class="seller-check"><input id="sellerSalesAlerts" type="checkbox"> Alert me when I make a sale</label>
+                <label class="seller-check" style="margin-top:10px"><input id="sellerLowStockAlerts" type="checkbox"> Alert me when a product reaches its low-stock limit</label>
+                <p id="sellerSettingsMessage" class="seller-message"></p>
+                <button class="seller-button" type="submit">Save Settings</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="seller-card half">
+            <div class="seller-card-header"><h2>Your Jubielee Terms</h2></div>
+            <div class="seller-card-body">
+              <div class="seller-stat">
+                <span class="label">Default marketplace commission</span>
+                <strong id="sellerCommissionDisplay" class="value">—</strong>
+              </div>
+              <p class="seller-muted">Jubielee controls commission terms. A specific product may have a different override. The exact commission used is saved permanently on each sale.</p>
+              <div class="seller-stat" style="margin-top:12px">
+                <span class="label">Product publishing</span>
+                <strong id="sellerPublishDisplay" class="value" style="font-size:20px">—</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="sellerProductModalBackdrop" class="seller-modal-backdrop" hidden>
+    <section class="seller-modal" role="dialog" aria-modal="true" aria-labelledby="sellerProductModalTitle">
+      <div class="seller-modal-head">
+        <h2 id="sellerProductModalTitle">Add Product</h2>
+        <button id="sellerProductModalClose" class="seller-modal-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="seller-modal-body">
+        <form id="sellerProductForm">
+          <input id="sellerProductId" type="hidden">
+          <div class="seller-form-grid">
+            <label class="seller-field full">Product name
+              <input id="sellerProductName" maxlength="180" required>
+            </label>
+            <label class="seller-field">Category
+              <select id="sellerProductCategory"><option value="">Uncategorized</option></select>
+            </label>
+            <label class="seller-field">SKU / item number
+              <input id="sellerProductSku" maxlength="100" placeholder="Optional">
+            </label>
+            <label class="seller-field full">Short description
+              <textarea id="sellerProductShortDescription" maxlength="500" style="min-height:80px"></textarea>
+            </label>
+            <label class="seller-field full">Full description
+              <textarea id="sellerProductDescription"></textarea>
+            </label>
+            <label class="seller-field third">Currency
+              <select id="sellerProductCurrency"><option value="USD">USD</option><option value="DOP">DOP</option></select>
+            </label>
+            <label class="seller-field third">Price
+              <input id="sellerProductPrice" type="number" min="0" step="0.01" required>
+            </label>
+            <label class="seller-field third">Compare-at price
+              <input id="sellerProductComparePrice" type="number" min="0" step="0.01">
+            </label>
+            <label id="sellerInitialStockField" class="seller-field third">Initial quantity
+              <input id="sellerProductStock" type="number" min="0" step="1" value="0">
+            </label>
+            <label class="seller-field third">Low-stock alert at
+              <input id="sellerProductLowStock" type="number" min="0" step="1" value="5">
+            </label>
+            <div class="seller-field full">
+              <label class="seller-check"><input id="sellerProductPublished" type="checkbox" checked> Publish when approved</label>
+              <label class="seller-check" style="margin-top:8px"><input id="sellerProductWallet" type="checkbox" checked> Allow Jubielee Wallet payment</label>
+              <label class="seller-check" style="margin-top:8px"><input id="sellerProductExternal" type="checkbox" checked> Allow outside payment</label>
+            </div>
+            <label class="seller-field">Product images
+              <input id="sellerProductImages" type="file" accept="image/*" multiple>
+            </label>
+            <label class="seller-field">Product videos
+              <input id="sellerProductVideos" type="file" accept="video/mp4,video/quicktime,video/webm,video/ogg" multiple>
+            </label>
+          </div>
+          <p id="sellerProductMessage" class="seller-message"></p>
+          <div class="seller-actions">
+            <button id="sellerProductSave" class="seller-button" type="submit">Save Product</button>
+            <button id="sellerProductCancel" class="seller-button secondary" type="button">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div id="sellerToast" class="seller-toast" hidden></div>
+
+  <script src="config.js?v=20260826-marketplace-1"></script>
+  <script src="seller.js?v=20260826-marketplace-1"></script>
+</body>
+</html>

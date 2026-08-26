@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <title>Seller Center | Jubielee Store</title>
-  <meta name="description" content="Sell on Jubielee Store, manage products, receive sales alerts, and move Store earnings to your Jubielee Wallet.">
+  <meta name="description" content="Sell on Jubielee Store, manage products and orders, receive sales alerts, and move Store earnings to your Jubielee Wallet.">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#087c45">
   <link rel="icon" href="assets/store-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="seller.css?v=20260826-marketplace-1">
+  <link rel="stylesheet" href="seller.css?v=20260826-marketplace-2">
 </head>
 <body class="seller-body">
   <header class="seller-header">
@@ -90,13 +90,14 @@
         <div>
           <span class="seller-eyebrow">Seller Center</span>
           <h1 id="sellerStoreName">Your JubieStore</h1>
-          <p id="sellerWelcomeText">Manage products, money, alerts, and your storefront.</p>
+          <p id="sellerWelcomeText">Manage products, orders, money, alerts, and your storefront.</p>
         </div>
         <a id="sellerPublicStoreLink" class="seller-public-link" href="#" target="_blank" rel="noopener">View public store →</a>
       </div>
 
       <nav class="seller-tabs" aria-label="Seller sections">
         <button class="seller-tab active" type="button" data-seller-tab="overview">Overview</button>
+        <button class="seller-tab" type="button" data-seller-tab="orders">Orders</button>
         <button class="seller-tab" type="button" data-seller-tab="products">Products</button>
         <button class="seller-tab" type="button" data-seller-tab="money">Money</button>
         <button class="seller-tab" type="button" data-seller-tab="settings">Settings</button>
@@ -113,6 +114,16 @@
         <div class="seller-card" style="margin-top:16px">
           <div class="seller-card-header"><h2>Recent Sales</h2></div>
           <div id="sellerRecentSales" class="seller-table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="sellerTabOrders" data-seller-panel="orders" hidden>
+        <div class="seller-card">
+          <div class="seller-card-header">
+            <div><h2>Seller Orders</h2><div class="seller-muted">Only the products belonging to your seller account are shown.</div></div>
+            <button id="sellerRefreshOrders" class="seller-button secondary small" type="button">Refresh</button>
+          </div>
+          <div id="sellerOrders" class="seller-table-wrap"></div>
         </div>
       </section>
 
@@ -286,7 +297,7 @@
 
   <div id="sellerToast" class="seller-toast" hidden></div>
 
-  <script src="config.js?v=20260826-marketplace-1"></script>
-  <script src="seller.js?v=20260826-marketplace-1"></script>
+  <script src="config.js?v=20260826-marketplace-2"></script>
+  <script src="seller.js?v=20260826-marketplace-2"></script>
 </body>
 </html>
